@@ -96,10 +96,9 @@ Tu único objetivo es ayudar al usuario y convertirlo en comprador.
 
 INSTRUCCIONES:
 - Responde siempre en el idioma del usuario
-- Sé conciso (máximo 3 párrafos)
-- Destaca beneficios, no solo características
-- Cuando el usuario muestre interés, guíalo hacia el checkout con un CTA claro
-- Si preguntan por precio, dilo y destaca el valor
+- MÁXIMO 2 oraciones cortas. Sé directo y natural, como una conversación hablada
+- Destaca el beneficio más relevante según la pregunta
+- Cuando el usuario muestre interés, guíalo al checkout con un CTA breve
 - Si el stock es bajo (< 5), crea urgencia
 - Nunca inventes información que no esté en el contexto del producto
 ${productContext}
@@ -113,7 +112,7 @@ Si no hay producto en contexto, ayuda de forma general sobre los productos de la
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
-    max_tokens: 500,
+    max_tokens: 120,
     system: systemPrompt,
     messages,
   })
