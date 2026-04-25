@@ -6,7 +6,7 @@
     product: null,
     sessionId: null,
     isOpen: false,
-    voiceEnabled: false,
+    voiceEnabled: true,
     messages: [],
 
     init: function (options) {
@@ -101,7 +101,7 @@
               '<div style="color:#fff;font-weight:700;font-size:15px;">' + assistantName + '</div>',
               '<div style="color:rgba(255,255,255,0.8);font-size:12px;">● En línea</div>',
             '</div>',
-            '<button id="sa-voice-btn" title="Activar voz" style="margin-left:auto;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:16px;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">🔇</button>',
+            '<button id="sa-voice-btn" title="Silenciar voz" style="margin-left:auto;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:16px;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">🔊</button>',
             '<button onclick="window.Assistant._close()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:0.8;line-height:1;">✕</button>',
           '</div>',
           // Producto context banner
@@ -239,7 +239,10 @@
     _toggleVoice: function () {
       this.voiceEnabled = !this.voiceEnabled;
       var btn = document.getElementById('sa-voice-btn');
-      if (btn) btn.textContent = this.voiceEnabled ? '🔊' : '🔇';
+      if (btn) {
+        btn.textContent = this.voiceEnabled ? '🔊' : '🔇';
+        btn.title = this.voiceEnabled ? 'Silenciar voz' : 'Activar voz';
+      }
     },
 
     _speak: function (text) {
