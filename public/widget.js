@@ -253,13 +253,13 @@
       utter.rate = 1.05;
       utter.pitch = 1;
 
-      // Asignar voz según cliente
+      // Voz femenina en español
       var voices = window.speechSynthesis.getVoices();
-      var femaleClients = ['22222222-2222-2222-2222-222222222222'];
-      var preferFemale = femaleClients.indexOf(this.clientId) !== -1;
       var picked = voices.find(function (v) {
-        return v.lang.startsWith('es') && (preferFemale ? v.name.match(/female|woman|sofia|lucia|paulina/i) : v.name.match(/male|man|jorge|diego|carlos/i));
-      }) || voices.find(function (v) { return v.lang.startsWith('es'); });
+        return v.lang.startsWith('es') && v.name.match(/female|woman|sofia|lucia|paulina|monica|conchita/i);
+      }) || voices.find(function (v) {
+        return v.lang.startsWith('es');
+      });
       if (picked) utter.voice = picked;
 
       window.speechSynthesis.speak(utter);
