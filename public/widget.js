@@ -246,24 +246,23 @@
     },
 
     _speak: function (text) {
-      var self = this;
-      var baseUrl = this._getBaseUrl();
-      fetch(baseUrl + '/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: text, clientId: self.clientId }),
-      })
-        .then(function (r) {
-          if (!r.ok) throw new Error('TTS error');
-          return r.blob();
-        })
-        .then(function (blob) {
-          var url = URL.createObjectURL(blob);
-          var audio = new Audio(url);
-          audio.onended = function () { URL.revokeObjectURL(url); };
-          audio.play();
-        })
-        .catch(function (e) { console.warn('[Assistant] TTS error:', e); });
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      var utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'es-ES';
+      utter.rate = 1.05;
+      utter.pitch = 1;
+
+      // Asignar voz según cliente
+      var voices = window.speechSynthesis.getVoices();
+      var femaleClients = ['22222222-2222-2222-2222-222222222222'];
+      var preferFemale = femaleClients.indexOf(this.clientId) !== -1;
+      var picked = voices.find(function (v) {
+        return v.lang.startsWith('es') && (preferFemale ? v.name.match(/female|woman|sofia|lucia|paulina/i) : v.name.match(/male|man|jorge|diego|carlos/i));
+      }) || voices.find(function (v) { return v.lang.startsWith('es'); });
+      if (picked) utter.voice = picked;
+
+      window.speechSynthesis.speak(utter);
     },
   };
 
