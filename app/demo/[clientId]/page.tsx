@@ -2,8 +2,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import DemoStore from './DemoStore'
 import { notFound } from 'next/navigation'
 
-export default async function DemoPage({ params }: { params: { clientId: string } }) {
-  const { clientId } = params
+export default async function DemoPage({ params }: { params: Promise<{ clientId: string }> }) {
+  const { clientId } = await params
   const db = supabaseAdmin()
 
   const [clientRes, productsRes, settingsRes] = await Promise.all([
