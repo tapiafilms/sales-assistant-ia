@@ -7,6 +7,7 @@
     sessionId: null,
     isOpen: false,
     voiceEnabled: true,
+    lottieAnim: null,
     messages: [],
 
     init: function (options) {
@@ -93,16 +94,19 @@
 
       // Chat window
       container.innerHTML = [
-        '<div id="sa-window" style="display:none;flex-direction:column;width:360px;height:500px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.18);overflow:hidden;margin-bottom:12px;">',
+        '<div id="sa-window" style="display:none;flex-direction:column;width:360px;height:560px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.18);overflow:hidden;margin-bottom:12px;">',
           // Header
-          '<div style="background:' + color + ';padding:16px;display:flex;align-items:center;gap:10px;">',
-            '<div style="width:36px;height:36px;background:rgba(255,255,255,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;">🤖</div>',
+          '<div style="background:' + color + ';padding:12px 16px;display:flex;align-items:center;gap:10px;">',
             '<div>',
               '<div style="color:#fff;font-weight:700;font-size:15px;">' + assistantName + '</div>',
               '<div style="color:rgba(255,255,255,0.8);font-size:12px;">● En línea</div>',
             '</div>',
             '<button id="sa-voice-btn" title="Silenciar voz" style="margin-left:auto;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:16px;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">🔊</button>',
             '<button onclick="window.Assistant._close()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:0.8;line-height:1;">✕</button>',
+          '</div>',
+          // Avatar Lottie
+          '<div style="background:' + color + ';display:flex;justify-content:center;padding-bottom:12px;">',
+            '<div id="sa-lottie" style="width:120px;height:120px;"></div>',
           '</div>',
           // Producto context banner
           self.product ? '<div style="background:#f8f9ff;padding:10px 14px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px;"><span style="font-size:13px;color:#666;">Preguntando sobre:</span><span style="font-size:13px;font-weight:600;color:#333;">' + self.product.name + '</span><span style="font-size:13px;font-weight:700;color:' + color + ';">' + self.product.price + '</span></div>' : '',
@@ -123,6 +127,17 @@
       ].join('');
 
       document.body.appendChild(container);
+
+      // Cargar lottie-web e inicializar avatar
+      var self2 = self;
+      if (window.lottie) {
+        self2._initLottie();
+      } else {
+        var lottieSrc = document.createElement('script');
+        lottieSrc.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
+        lottieSrc.onload = function () { self2._initLottie(); };
+        document.head.appendChild(lottieSrc);
+      }
 
       // Proactive message bubble
       setTimeout(function () {
@@ -236,6 +251,19 @@
       if (t) t.remove();
     },
 
+    _initLottie: function () {
+      var container = document.getElementById('sa-lottie');
+      if (!container || !window.lottie) return;
+      var baseUrl = this._getBaseUrl();
+      this.lottieAnim = window.lottie.loadAnimation({
+        container: container,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        path: baseUrl + '/avatar.json',
+      });
+    },
+
     _toggleVoice: function () {
       this.voiceEnabled = !this.voiceEnabled;
       var btn = document.getElementById('sa-voice-btn');
@@ -261,6 +289,12 @@
         return v.lang.startsWith('es');
       });
       if (picked) utter.voice = picked;
+
+      // Animar avatar mientras habla
+      if (this.lottieAnim) this.lottieAnim.setSpeed(1.8);
+      utter.onend = function () {
+        if (self.lottieAnim) self.lottieAnim.setSpeed(1);
+      };
 
       window.speechSynthesis.speak(utter);
     },
