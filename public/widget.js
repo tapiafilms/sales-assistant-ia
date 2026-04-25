@@ -6,6 +6,7 @@
     product: null,
     sessionId: null,
     isOpen: false,
+    voiceEnabled: false,
     messages: [],
 
     init: function (options) {
@@ -100,7 +101,8 @@
               '<div style="color:#fff;font-weight:700;font-size:15px;">' + assistantName + '</div>',
               '<div style="color:rgba(255,255,255,0.8);font-size:12px;">● En línea</div>',
             '</div>',
-            '<button onclick="window.Assistant._close()" style="margin-left:auto;background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:0.8;line-height:1;">✕</button>',
+            '<button id="sa-voice-btn" title="Activar voz" style="margin-left:auto;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:16px;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">🔇</button>',
+            '<button onclick="window.Assistant._close()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:0.8;line-height:1;">✕</button>',
           '</div>',
           // Producto context banner
           self.product ? '<div style="background:#f8f9ff;padding:10px 14px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px;"><span style="font-size:13px;color:#666;">Preguntando sobre:</span><span style="font-size:13px;font-weight:600;color:#333;">' + self.product.name + '</span><span style="font-size:13px;font-weight:700;color:' + color + ';">' + self.product.price + '</span></div>' : '',
@@ -136,6 +138,9 @@
       });
       document.getElementById('sa-input').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') self._send();
+      });
+      document.getElementById('sa-voice-btn').addEventListener('click', function () {
+        self._toggleVoice();
       });
     },
 
@@ -195,7 +200,9 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           self._removeTyping();
-          self._appendMessage(data.message || 'Lo siento, ocurrió un error.', 'bot');
+          var msg = data.message || 'Lo siento, ocurrió un error.';
+          self._appendMessage(msg, 'bot');
+          if (self.voiceEnabled) self._speak(msg);
         })
         .catch(function () {
           self._removeTyping();
@@ -227,6 +234,33 @@
     _removeTyping: function () {
       var t = document.getElementById('sa-typing');
       if (t) t.remove();
+    },
+
+    _toggleVoice: function () {
+      this.voiceEnabled = !this.voiceEnabled;
+      var btn = document.getElementById('sa-voice-btn');
+      if (btn) btn.textContent = this.voiceEnabled ? '🔊' : '🔇';
+    },
+
+    _speak: function (text) {
+      var self = this;
+      var baseUrl = this._getBaseUrl();
+      fetch(baseUrl + '/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text, clientId: self.clientId }),
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error('TTS error');
+          return r.blob();
+        })
+        .then(function (blob) {
+          var url = URL.createObjectURL(blob);
+          var audio = new Audio(url);
+          audio.onended = function () { URL.revokeObjectURL(url); };
+          audio.play();
+        })
+        .catch(function (e) { console.warn('[Assistant] TTS error:', e); });
     },
   };
 
