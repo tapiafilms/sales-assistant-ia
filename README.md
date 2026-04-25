@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sales Assistant IA — Demo
 
-## Getting Started
+Widget embebible de ventas con IA para ecommerce. Sistema SaaS multi-tenant.
 
-First, run the development server:
+## Setup rápido (5 pasos)
 
+### 1. Instalar dependencias
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Crear proyecto en Supabase
+1. Ve a [supabase.com](https://supabase.com) → New project
+2. En **SQL Editor**, ejecuta todo el contenido de `supabase/schema.sql`
+3. Copia tu **Project URL** y **anon key** desde Settings > API
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Obtener API key de Anthropic
+1. Ve a [console.anthropic.com](https://console.anthropic.com)
+2. API Keys → Create Key
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Configurar variables de entorno
+Edita `.env.local` con tus credenciales:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+ANTHROPIC_API_KEY=sk-ant-...
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
-## Learn More
+### 5. Correr el proyecto
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Abre [http://localhost:3000](http://localhost:3000)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Rutas del demo
 
-## Deploy on Vercel
+| Ruta | Descripción |
+|------|-------------|
+| `/` | Landing page con las 3 tiendas demo |
+| `/demo/11111111-...` | TechStore Pro (laptops, auriculares) |
+| `/demo/22222222-...` | ModaElite (bolsos, zapatos) |
+| `/demo/33333333-...` | FitLife Nutrition (suplementos) |
+| `/admin` | Panel multi-tenant con todos los clientes |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## IDs de clientes demo
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+TechStore Pro:     11111111-1111-1111-1111-111111111111
+ModaElite:         22222222-2222-2222-2222-222222222222
+FitLife Nutrition: 33333333-3333-3333-3333-333333333333
+```
+
+## Integración del widget en cualquier sitio
+
+```html
+<script src="https://tudominio.com/widget.js"></script>
+<script>
+  window.Assistant.init({
+    clientId: "TU_CLIENT_ID",
+    productId: "ID_PRODUCTO" // opcional
+  })
+</script>
+```
+
+## API Endpoints
+
+| Endpoint | Método | Descripción |
+|----------|--------|-------------|
+| `/api/config?clientId=X` | GET | Config y settings del cliente |
+| `/api/context` | POST | Datos del producto actual |
+| `/api/chat` | POST | Enviar mensaje al asistente IA |
+
+## Stack
+
+- **Frontend**: Next.js 15 + Tailwind CSS
+- **Backend**: Next.js API Routes
+- **Base de datos**: Supabase (PostgreSQL + RLS)
+- **IA**: Claude Sonnet (Anthropic API)
+- **Deploy**: Vercel
+
+## Deploy en Vercel
+
+```bash
+npx vercel
+```
+
+Agregar las mismas variables de entorno en el dashboard de Vercel.
