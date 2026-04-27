@@ -26,7 +26,8 @@ export async function POST(req: NextRequest) {
   const voiceId = VOICE_MAP[clientId] || DEFAULT_VOICE
 
   // Limitar texto a 300 chars para conservar créditos en demo
-  const truncated = text.slice(0, 300)
+  // Espacios al inicio: workaround para el clipping del primer fonema en ElevenLabs
+  const truncated = '   ' + text.slice(0, 300)
 
   const audioStream = await client.textToSpeech.convert(voiceId, {
     text: truncated,
