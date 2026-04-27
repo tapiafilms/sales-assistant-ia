@@ -94,7 +94,8 @@
       container.style.cssText = 'position:fixed;' + positionStyle + 'z-index:99999;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
 
       container.innerHTML = [
-        '<div id="sa-window" style="display:none;flex-direction:column;width:360px;height:580px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.18);overflow:hidden;margin-bottom:12px;">',
+        // Chat window — sin avatar adentro
+        '<div id="sa-window" style="display:none;flex-direction:column;width:360px;height:480px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.18);overflow:hidden;margin-bottom:12px;">',
           // Header
           '<div style="background:' + color + ';padding:12px 16px;display:flex;align-items:center;gap:10px;">',
             '<div>',
@@ -103,12 +104,6 @@
             '</div>',
             '<button id="sa-voice-btn" title="Silenciar voz" style="margin-left:auto;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:16px;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">🔊</button>',
             '<button onclick="window.Assistant._close()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:0.8;line-height:1;">✕</button>',
-          '</div>',
-          // Avatar video
-          '<div style="background:' + color + ';display:flex;justify-content:center;padding-bottom:12px;position:relative;overflow:hidden;">',
-            '<video id="sa-avatar-idle" src="' + baseUrl + '/avatar-idle.mp4" autoplay loop muted playsinline style="width:140px;height:140px;object-fit:cover;border-radius:50%;display:block;"></video>',
-            '<video id="sa-avatar-thinking" src="' + baseUrl + '/avatar-thinking.mp4" loop muted playsinline style="width:140px;height:140px;object-fit:cover;border-radius:50%;display:none;position:absolute;top:0;"></video>',
-            '<video id="sa-avatar-talking" src="' + baseUrl + '/avatar-talking.mp4" loop muted playsinline style="width:140px;height:140px;object-fit:cover;border-radius:50%;display:none;position:absolute;top:0;"></video>',
           '</div>',
           // Producto context banner
           self.product ? '<div style="background:#f8f9ff;padding:10px 14px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px;"><span style="font-size:13px;color:#666;">Preguntando sobre:</span><span style="font-size:13px;font-weight:600;color:#333;">' + self.product.name + '</span><span style="font-size:13px;font-weight:700;color:' + color + ';">' + self.product.price + '</span></div>' : '',
@@ -120,6 +115,14 @@
           '<div style="padding:12px;border-top:1px solid #eee;display:flex;gap:8px;background:#fff;">',
             '<input id="sa-input" type="text" placeholder="Escribe tu pregunta..." style="flex:1;border:1px solid #e5e7eb;border-radius:24px;padding:10px 16px;font-size:14px;outline:none;color:#333;" />',
             '<button id="sa-send" style="background:' + color + ';color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">➤</button>',
+          '</div>',
+        '</div>',
+        // Avatar flotante — independiente del chat, nunca se tapa
+        '<div id="sa-avatar-wrap" style="display:none;justify-content:center;margin-bottom:8px;">',
+          '<div style="position:relative;width:80px;height:80px;">',
+            '<video id="sa-avatar-idle" src="' + baseUrl + '/avatar-idle.mp4" autoplay loop muted playsinline style="width:80px;height:80px;object-fit:cover;border-radius:50%;display:block;box-shadow:0 4px 16px rgba(0,0,0,0.25);border:3px solid ' + color + ';"></video>',
+            '<video id="sa-avatar-thinking" src="' + baseUrl + '/avatar-thinking.mp4" loop muted playsinline style="width:80px;height:80px;object-fit:cover;border-radius:50%;display:none;position:absolute;top:0;left:0;box-shadow:0 4px 16px rgba(0,0,0,0.25);border:3px solid ' + color + ';"></video>',
+            '<video id="sa-avatar-talking" src="' + baseUrl + '/avatar-talking.mp4" loop muted playsinline style="width:80px;height:80px;object-fit:cover;border-radius:50%;display:none;position:absolute;top:0;left:0;box-shadow:0 4px 16px rgba(0,0,0,0.25);border:3px solid ' + color + ';"></video>',
           '</div>',
         '</div>',
         // Toggle button
@@ -150,12 +153,11 @@
     },
 
     _setAvatarState: function (state) {
-      // state: 'idle' | 'thinking' | 'talking'
       this.avatarState = state;
       var idle = document.getElementById('sa-avatar-idle');
       var thinking = document.getElementById('sa-avatar-thinking');
       var talking = document.getElementById('sa-avatar-talking');
-      if (!idle) return;
+      if (!idle || !this.isOpen) return;
 
       idle.style.display = 'none';
       thinking.style.display = 'none';
@@ -183,10 +185,12 @@
     _toggle: function () {
       this.isOpen = !this.isOpen;
       var win = document.getElementById('sa-window');
+      var avatarWrap = document.getElementById('sa-avatar-wrap');
       var icon = document.getElementById('sa-toggle-icon');
       var proactive = document.getElementById('sa-proactive');
       if (proactive) proactive.remove();
       win.style.display = this.isOpen ? 'flex' : 'none';
+      avatarWrap.style.display = this.isOpen ? 'flex' : 'none';
       icon.textContent = this.isOpen ? '✕' : '💬';
       if (this.isOpen) {
         this._setAvatarState('idle');
@@ -197,6 +201,7 @@
     _close: function () {
       this.isOpen = false;
       document.getElementById('sa-window').style.display = 'none';
+      document.getElementById('sa-avatar-wrap').style.display = 'none';
       document.getElementById('sa-toggle-icon').textContent = '💬';
       if (this.currentAudio) {
         this.currentAudio.pause();
