@@ -7,7 +7,8 @@
     sessionId: null,
     isOpen: false,
     voiceEnabled: true,
-    lottieAnim: null,
+    currentAudio: null,
+    avatarState: 'idle', // idle | thinking | talking
     messages: [],
 
     init: function (options) {
@@ -82,19 +83,18 @@
       var assistantName = cfg.client.assistant_name || 'Asistente';
       var welcome = settings.welcome_message || '¡Hola! ¿En qué puedo ayudarte?';
       var proactive = settings.proactive_msg || '¿Tienes alguna pregunta?';
+      var baseUrl = self._getBaseUrl();
 
       var positionStyle = position === 'bottom-left'
         ? 'bottom:24px;left:24px;'
         : 'bottom:24px;right:24px;';
 
-      // Contenedor principal
       var container = document.createElement('div');
       container.id = 'sales-assistant-widget';
       container.style.cssText = 'position:fixed;' + positionStyle + 'z-index:99999;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
 
-      // Chat window
       container.innerHTML = [
-        '<div id="sa-window" style="display:none;flex-direction:column;width:360px;height:560px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.18);overflow:hidden;margin-bottom:12px;">',
+        '<div id="sa-window" style="display:none;flex-direction:column;width:360px;height:580px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.18);overflow:hidden;margin-bottom:12px;">',
           // Header
           '<div style="background:' + color + ';padding:12px 16px;display:flex;align-items:center;gap:10px;">',
             '<div>',
@@ -104,9 +104,11 @@
             '<button id="sa-voice-btn" title="Silenciar voz" style="margin-left:auto;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:16px;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">🔊</button>',
             '<button onclick="window.Assistant._close()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:0.8;line-height:1;">✕</button>',
           '</div>',
-          // Avatar Lottie
-          '<div style="background:' + color + ';display:flex;justify-content:center;padding-bottom:12px;">',
-            '<div id="sa-lottie" style="width:120px;height:120px;"></div>',
+          // Avatar video
+          '<div style="background:' + color + ';display:flex;justify-content:center;padding-bottom:12px;position:relative;overflow:hidden;">',
+            '<video id="sa-avatar-idle" src="' + baseUrl + '/avatar-idle.mp4" autoplay loop muted playsinline style="width:140px;height:140px;object-fit:cover;border-radius:50%;display:block;"></video>',
+            '<video id="sa-avatar-thinking" src="' + baseUrl + '/avatar-thinking.mp4" loop muted playsinline style="width:140px;height:140px;object-fit:cover;border-radius:50%;display:none;position:absolute;top:0;"></video>',
+            '<video id="sa-avatar-talking" src="' + baseUrl + '/avatar-talking.mp4" loop muted playsinline style="width:140px;height:140px;object-fit:cover;border-radius:50%;display:none;position:absolute;top:0;"></video>',
           '</div>',
           // Producto context banner
           self.product ? '<div style="background:#f8f9ff;padding:10px 14px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px;"><span style="font-size:13px;color:#666;">Preguntando sobre:</span><span style="font-size:13px;font-weight:600;color:#333;">' + self.product.name + '</span><span style="font-size:13px;font-weight:700;color:' + color + ';">' + self.product.price + '</span></div>' : '',
@@ -128,23 +130,11 @@
 
       document.body.appendChild(container);
 
-      // Cargar lottie-web e inicializar avatar
-      var self2 = self;
-      if (window.lottie) {
-        self2._initLottie();
-      } else {
-        var lottieSrc = document.createElement('script');
-        lottieSrc.src = 'https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js';
-        lottieSrc.onload = function () { self2._initLottie(); };
-        document.head.appendChild(lottieSrc);
-      }
-
       // Proactive message bubble
       setTimeout(function () {
         if (!self.isOpen) self._showProactive(proactive, color, positionStyle);
       }, 3000);
 
-      // Events
       document.getElementById('sa-toggle').addEventListener('click', function () {
         self._toggle();
       });
@@ -157,6 +147,23 @@
       document.getElementById('sa-voice-btn').addEventListener('click', function () {
         self._toggleVoice();
       });
+    },
+
+    _setAvatarState: function (state) {
+      // state: 'idle' | 'thinking' | 'talking'
+      this.avatarState = state;
+      var idle = document.getElementById('sa-avatar-idle');
+      var thinking = document.getElementById('sa-avatar-thinking');
+      var talking = document.getElementById('sa-avatar-talking');
+      if (!idle) return;
+
+      idle.style.display = 'none';
+      thinking.style.display = 'none';
+      talking.style.display = 'none';
+
+      var active = state === 'thinking' ? thinking : state === 'talking' ? talking : idle;
+      active.style.display = 'block';
+      active.play();
     },
 
     _showProactive: function (msg, color, positionStyle) {
@@ -181,13 +188,21 @@
       if (proactive) proactive.remove();
       win.style.display = this.isOpen ? 'flex' : 'none';
       icon.textContent = this.isOpen ? '✕' : '💬';
-      if (this.isOpen) setTimeout(function () { document.getElementById('sa-input').focus(); }, 100);
+      if (this.isOpen) {
+        this._setAvatarState('idle');
+        setTimeout(function () { document.getElementById('sa-input').focus(); }, 100);
+      }
     },
 
     _close: function () {
       this.isOpen = false;
       document.getElementById('sa-window').style.display = 'none';
       document.getElementById('sa-toggle-icon').textContent = '💬';
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
+      this._setAvatarState('idle');
     },
 
     _send: function () {
@@ -198,6 +213,13 @@
 
       this._appendMessage(msg, 'user');
       this._appendTyping();
+      this._setAvatarState('thinking');
+
+      // Parar audio anterior si hay
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+      }
 
       var self = this;
       var baseUrl = this._getBaseUrl();
@@ -215,13 +237,18 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           self._removeTyping();
-          var msg = data.message || 'Lo siento, ocurrió un error.';
-          self._appendMessage(msg, 'bot');
-          if (self.voiceEnabled) self._speak(msg);
+          var reply = data.message || 'Lo siento, ocurrió un error.';
+          self._appendMessage(reply, 'bot');
+          if (self.voiceEnabled) {
+            self._speak(reply);
+          } else {
+            self._setAvatarState('idle');
+          }
         })
         .catch(function () {
           self._removeTyping();
           self._appendMessage('Error de conexión. Por favor intenta de nuevo.', 'bot');
+          self._setAvatarState('idle');
         });
     },
 
@@ -251,19 +278,6 @@
       if (t) t.remove();
     },
 
-    _initLottie: function () {
-      var container = document.getElementById('sa-lottie');
-      if (!container || !window.lottie) return;
-      var baseUrl = this._getBaseUrl();
-      this.lottieAnim = window.lottie.loadAnimation({
-        container: container,
-        renderer: 'svg',
-        loop: true,
-        autoplay: true,
-        path: baseUrl + '/avatar.json',
-      });
-    },
-
     _toggleVoice: function () {
       this.voiceEnabled = !this.voiceEnabled;
       var btn = document.getElementById('sa-voice-btn');
@@ -271,32 +285,46 @@
         btn.textContent = this.voiceEnabled ? '🔊' : '🔇';
         btn.title = this.voiceEnabled ? 'Silenciar voz' : 'Activar voz';
       }
+      if (!this.voiceEnabled && this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio = null;
+        this._setAvatarState('idle');
+      }
     },
 
     _speak: function (text) {
-      if (!window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
-      var utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'es-ES';
-      utter.rate = 1.05;
-      utter.pitch = 1;
+      var self = this;
+      var baseUrl = this._getBaseUrl();
 
-      // Voz femenina en español
-      var voices = window.speechSynthesis.getVoices();
-      var picked = voices.find(function (v) {
-        return v.lang.startsWith('es') && v.name.match(/female|woman|sofia|lucia|paulina|monica|conchita/i);
-      }) || voices.find(function (v) {
-        return v.lang.startsWith('es');
-      });
-      if (picked) utter.voice = picked;
+      self._setAvatarState('talking');
 
-      // Animar avatar mientras habla
-      if (this.lottieAnim) this.lottieAnim.setSpeed(1.8);
-      utter.onend = function () {
-        if (self.lottieAnim) self.lottieAnim.setSpeed(1);
-      };
-
-      window.speechSynthesis.speak(utter);
+      fetch(baseUrl + '/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text, clientId: self.clientId }),
+      })
+        .then(function (res) {
+          if (!res.ok) throw new Error('TTS error');
+          return res.blob();
+        })
+        .then(function (blob) {
+          var url = URL.createObjectURL(blob);
+          var audio = new Audio(url);
+          self.currentAudio = audio;
+          audio.play();
+          audio.onended = function () {
+            URL.revokeObjectURL(url);
+            self.currentAudio = null;
+            self._setAvatarState('idle');
+          };
+          audio.onerror = function () {
+            self.currentAudio = null;
+            self._setAvatarState('idle');
+          };
+        })
+        .catch(function () {
+          self._setAvatarState('idle');
+        });
     },
   };
 
