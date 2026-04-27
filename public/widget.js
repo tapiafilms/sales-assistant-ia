@@ -9,7 +9,6 @@
     voiceEnabled: true,
     currentAudio: null,
     avatarState: 'idle', // idle | thinking | talking
-    messages: [],
 
     init: function (options) {
       if (!options.clientId) return console.error('[Assistant] clientId requerido');
@@ -94,37 +93,44 @@
       container.style.cssText = 'position:fixed;' + positionStyle + 'z-index:99999;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
 
       container.innerHTML = [
-        // Chat window — sin avatar adentro
-        '<div id="sa-window" style="display:none;flex-direction:column;width:360px;height:480px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.18);overflow:hidden;margin-bottom:12px;">',
+        '<div id="sa-window" style="display:none;flex-direction:column;width:320px;background:#fff;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,0.18);overflow:hidden;margin-bottom:12px;">',
+
           // Header
           '<div style="background:' + color + ';padding:12px 16px;display:flex;align-items:center;gap:10px;">',
-            '<div>',
-              '<div style="color:#fff;font-weight:700;font-size:15px;">' + assistantName + '</div>',
-              '<div style="color:rgba(255,255,255,0.8);font-size:12px;">● En línea</div>',
+            '<div style="color:#fff;font-weight:700;font-size:15px;">' + assistantName + '</div>',
+            '<div style="color:rgba(255,255,255,0.7);font-size:12px;margin-left:6px;">● En línea</div>',
+            '<button id="sa-voice-btn" title="Silenciar voz" style="margin-left:auto;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:15px;cursor:pointer;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;">🔊</button>',
+            '<button onclick="window.Assistant._close()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:0.8;line-height:1;margin-left:4px;">✕</button>',
+          '</div>',
+
+          // Avatar + burbuja
+          '<div style="background:#f5f5f7;padding:20px 16px 16px;display:flex;flex-direction:column;align-items:center;gap:16px;">',
+
+            // Avatar circular
+            '<div style="position:relative;width:180px;height:180px;flex-shrink:0;">',
+              '<video id="sa-avatar-idle" src="' + baseUrl + '/avatar-idle.mp4" autoplay loop muted playsinline style="width:180px;height:180px;object-fit:cover;border-radius:50%;display:block;box-shadow:0 6px 24px rgba(0,0,0,0.15);border:3px solid ' + color + ';"></video>',
+              '<video id="sa-avatar-thinking" src="' + baseUrl + '/avatar-thinking.mp4" loop muted playsinline style="width:180px;height:180px;object-fit:cover;border-radius:50%;display:none;position:absolute;top:0;left:0;box-shadow:0 6px 24px rgba(0,0,0,0.15);border:3px solid ' + color + ';"></video>',
+              '<video id="sa-avatar-talking" src="' + baseUrl + '/avatar-talking.mp4" loop muted playsinline style="width:180px;height:180px;object-fit:cover;border-radius:50%;display:none;position:absolute;top:0;left:0;box-shadow:0 6px 24px rgba(0,0,0,0.15);border:3px solid ' + color + ';"></video>',
             '</div>',
-            '<button id="sa-voice-btn" title="Silenciar voz" style="margin-left:auto;background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:16px;cursor:pointer;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">🔊</button>',
-            '<button onclick="window.Assistant._close()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;opacity:0.8;line-height:1;">✕</button>',
+
+            // Burbuja única
+            '<div id="sa-bubble" style="width:100%;min-height:52px;display:flex;align-items:center;">',
+              '<div style="background:#4B9EF4;color:#fff;padding:12px 16px;border-radius:20px;border-bottom-left-radius:5px;font-size:14px;line-height:1.5;max-width:100%;word-wrap:break-word;">' + welcome + '</div>',
+            '</div>',
+
           '</div>',
-          // Producto context banner
-          self.product ? '<div style="background:#f8f9ff;padding:10px 14px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:8px;"><span style="font-size:13px;color:#666;">Preguntando sobre:</span><span style="font-size:13px;font-weight:600;color:#333;">' + self.product.name + '</span><span style="font-size:13px;font-weight:700;color:' + color + ';">' + self.product.price + '</span></div>' : '',
-          // Messages
-          '<div id="sa-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#f9fafb;">',
-            '<div class="sa-msg sa-msg-bot" style="align-self:flex-start;max-width:80%;background:#fff;padding:10px 14px;border-radius:12px;border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.08);font-size:14px;color:#333;line-height:1.5;">' + welcome + '</div>',
-          '</div>',
+
+          // Producto banner
+          self.product ? '<div style="background:#f0f0ff;padding:8px 14px;border-top:1px solid #e8e8f0;display:flex;align-items:center;gap:8px;"><span style="font-size:12px;color:#888;">Sobre:</span><span style="font-size:13px;font-weight:600;color:#333;">' + self.product.name + '</span><span style="font-size:13px;font-weight:700;color:' + color + ';">' + self.product.price + '</span></div>' : '',
+
           // Input
           '<div style="padding:12px;border-top:1px solid #eee;display:flex;gap:8px;background:#fff;">',
-            '<input id="sa-input" type="text" placeholder="Escribe tu pregunta..." style="flex:1;border:1px solid #e5e7eb;border-radius:24px;padding:10px 16px;font-size:14px;outline:none;color:#333;" />',
+            '<input id="sa-input" type="text" placeholder="Escribe tu pregunta..." style="flex:1;border:1px solid #e5e7eb;border-radius:24px;padding:10px 16px;font-size:14px;outline:none;color:#333;background:#f9fafb;" />',
             '<button id="sa-send" style="background:' + color + ';color:#fff;border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">➤</button>',
           '</div>',
+
         '</div>',
-        // Avatar flotante — independiente del chat, nunca se tapa
-        '<div id="sa-avatar-wrap" style="display:none;justify-content:center;margin-bottom:8px;">',
-          '<div style="position:relative;width:80px;height:80px;">',
-            '<video id="sa-avatar-idle" src="' + baseUrl + '/avatar-idle.mp4" autoplay loop muted playsinline style="width:80px;height:80px;object-fit:cover;border-radius:50%;display:block;box-shadow:0 4px 16px rgba(0,0,0,0.25);border:3px solid ' + color + ';"></video>',
-            '<video id="sa-avatar-thinking" src="' + baseUrl + '/avatar-thinking.mp4" loop muted playsinline style="width:80px;height:80px;object-fit:cover;border-radius:50%;display:none;position:absolute;top:0;left:0;box-shadow:0 4px 16px rgba(0,0,0,0.25);border:3px solid ' + color + ';"></video>',
-            '<video id="sa-avatar-talking" src="' + baseUrl + '/avatar-talking.mp4" loop muted playsinline style="width:80px;height:80px;object-fit:cover;border-radius:50%;display:none;position:absolute;top:0;left:0;box-shadow:0 4px 16px rgba(0,0,0,0.25);border:3px solid ' + color + ';"></video>',
-          '</div>',
-        '</div>',
+
         // Toggle button
         '<div id="sa-toggle" style="width:58px;height:58px;background:' + color + ';border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.2);transition:transform 0.2s;margin-left:auto;">',
           '<span id="sa-toggle-icon" style="font-size:26px;">💬</span>',
@@ -133,23 +139,16 @@
 
       document.body.appendChild(container);
 
-      // Proactive message bubble
       setTimeout(function () {
         if (!self.isOpen) self._showProactive(proactive, color, positionStyle);
       }, 3000);
 
-      document.getElementById('sa-toggle').addEventListener('click', function () {
-        self._toggle();
-      });
-      document.getElementById('sa-send').addEventListener('click', function () {
-        self._send();
-      });
+      document.getElementById('sa-toggle').addEventListener('click', function () { self._toggle(); });
+      document.getElementById('sa-send').addEventListener('click', function () { self._send(); });
       document.getElementById('sa-input').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') self._send();
       });
-      document.getElementById('sa-voice-btn').addEventListener('click', function () {
-        self._toggleVoice();
-      });
+      document.getElementById('sa-voice-btn').addEventListener('click', function () { self._toggleVoice(); });
     },
 
     _setAvatarState: function (state) {
@@ -157,7 +156,7 @@
       var idle = document.getElementById('sa-avatar-idle');
       var thinking = document.getElementById('sa-avatar-thinking');
       var talking = document.getElementById('sa-avatar-talking');
-      if (!idle || !this.isOpen) return;
+      if (!idle) return;
 
       idle.style.display = 'none';
       thinking.style.display = 'none';
@@ -168,6 +167,27 @@
       active.play();
     },
 
+    _setBubble: function (text, role) {
+      var bubble = document.getElementById('sa-bubble');
+      if (!bubble) return;
+      var isBot = role === 'bot';
+      var align = isBot ? 'flex-start' : 'flex-end';
+      var bg = isBot ? '#4B9EF4' : '#E5E5EA';
+      var textColor = isBot ? '#fff' : '#333';
+      var borderRadius = isBot
+        ? 'border-radius:20px;border-bottom-left-radius:5px;'
+        : 'border-radius:20px;border-bottom-right-radius:5px;';
+      bubble.style.justifyContent = align;
+      bubble.innerHTML = '<div style="background:' + bg + ';color:' + textColor + ';padding:12px 16px;' + borderRadius + 'font-size:14px;line-height:1.5;max-width:100%;word-wrap:break-word;">' + text + '</div>';
+    },
+
+    _setTypingBubble: function () {
+      var bubble = document.getElementById('sa-bubble');
+      if (!bubble) return;
+      bubble.style.justifyContent = 'flex-start';
+      bubble.innerHTML = '<div style="background:#E5E5EA;padding:12px 18px;border-radius:20px;border-bottom-left-radius:5px;font-size:20px;letter-spacing:3px;color:#999;">···</div>';
+    },
+
     _showProactive: function (msg, color, positionStyle) {
       var self = this;
       var bubble = document.createElement('div');
@@ -175,22 +195,17 @@
       bubble.style.cssText = 'position:fixed;' + positionStyle + 'z-index:99998;max-width:240px;background:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);font-size:13px;color:#333;margin-bottom:90px;cursor:pointer;border-left:3px solid ' + color + ';';
       bubble.innerHTML = msg + '<span style="display:block;font-size:11px;color:#999;margin-top:4px;">Haz clic para responder</span>';
       document.body.appendChild(bubble);
-      bubble.addEventListener('click', function () {
-        bubble.remove();
-        self._toggle();
-      });
+      bubble.addEventListener('click', function () { bubble.remove(); self._toggle(); });
       setTimeout(function () { if (bubble.parentNode) bubble.remove(); }, 8000);
     },
 
     _toggle: function () {
       this.isOpen = !this.isOpen;
       var win = document.getElementById('sa-window');
-      var avatarWrap = document.getElementById('sa-avatar-wrap');
       var icon = document.getElementById('sa-toggle-icon');
       var proactive = document.getElementById('sa-proactive');
       if (proactive) proactive.remove();
       win.style.display = this.isOpen ? 'flex' : 'none';
-      avatarWrap.style.display = this.isOpen ? 'flex' : 'none';
       icon.textContent = this.isOpen ? '✕' : '💬';
       if (this.isOpen) {
         this._setAvatarState('idle');
@@ -201,13 +216,11 @@
     _close: function () {
       this.isOpen = false;
       document.getElementById('sa-window').style.display = 'none';
-      document.getElementById('sa-avatar-wrap').style.display = 'none';
       document.getElementById('sa-toggle-icon').textContent = '💬';
       if (this.currentAudio) {
         this.currentAudio.pause();
         this.currentAudio = null;
       }
-      this._setAvatarState('idle');
     },
 
     _send: function () {
@@ -216,11 +229,9 @@
       if (!msg) return;
       input.value = '';
 
-      this._appendMessage(msg, 'user');
-      this._appendTyping();
+      this._setBubble(msg, 'user');
       this._setAvatarState('thinking');
 
-      // Parar audio anterior si hay
       if (this.currentAudio) {
         this.currentAudio.pause();
         this.currentAudio = null;
@@ -228,6 +239,9 @@
 
       var self = this;
       var baseUrl = this._getBaseUrl();
+
+      // Mostrar puntos tras un pequeño delay para que se vea la burbuja del usuario primero
+      setTimeout(function () { self._setTypingBubble(); }, 600);
 
       fetch(baseUrl + '/api/chat', {
         method: 'POST',
@@ -241,9 +255,8 @@
       })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-          self._removeTyping();
           var reply = data.message || 'Lo siento, ocurrió un error.';
-          self._appendMessage(reply, 'bot');
+          self._setBubble(reply, 'bot');
           if (self.voiceEnabled) {
             self._speak(reply);
           } else {
@@ -251,36 +264,9 @@
           }
         })
         .catch(function () {
-          self._removeTyping();
-          self._appendMessage('Error de conexión. Por favor intenta de nuevo.', 'bot');
+          self._setBubble('Error de conexión. Por favor intenta de nuevo.', 'bot');
           self._setAvatarState('idle');
         });
-    },
-
-    _appendMessage: function (text, role) {
-      var msgs = document.getElementById('sa-messages');
-      var color = (this.config && this.config.settings && this.config.settings.primary_color) || '#6366f1';
-      var isUser = role === 'user';
-      var div = document.createElement('div');
-      div.style.cssText = 'align-self:' + (isUser ? 'flex-end' : 'flex-start') + ';max-width:82%;background:' + (isUser ? color : '#fff') + ';color:' + (isUser ? '#fff' : '#333') + ';padding:10px 14px;border-radius:12px;border-' + (isUser ? 'bottom-right' : 'bottom-left') + '-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.08);font-size:14px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;';
-      div.textContent = text;
-      msgs.appendChild(div);
-      msgs.scrollTop = msgs.scrollHeight;
-    },
-
-    _appendTyping: function () {
-      var msgs = document.getElementById('sa-messages');
-      var div = document.createElement('div');
-      div.id = 'sa-typing';
-      div.style.cssText = 'align-self:flex-start;background:#fff;padding:10px 14px;border-radius:12px;border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,0.08);font-size:22px;letter-spacing:2px;';
-      div.textContent = '···';
-      msgs.appendChild(div);
-      msgs.scrollTop = msgs.scrollHeight;
-    },
-
-    _removeTyping: function () {
-      var t = document.getElementById('sa-typing');
-      if (t) t.remove();
     },
 
     _toggleVoice: function () {
