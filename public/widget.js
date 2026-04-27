@@ -301,8 +301,6 @@
       var self = this;
       var baseUrl = this._getBaseUrl();
 
-      self._setAvatarState('talking');
-
       fetch(baseUrl + '/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -316,6 +314,9 @@
           var url = URL.createObjectURL(blob);
           var audio = new Audio(url);
           self.currentAudio = audio;
+          audio.addEventListener('playing', function () {
+            self._setAvatarState('talking');
+          });
           audio.play();
           audio.onended = function () {
             URL.revokeObjectURL(url);
